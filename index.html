@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Advanced Plant Growth Simulation</title>
+    <style>
+        :root {
+            --soil-color: #8B4513;
+            --stem-color: #228B22;
+            --leaf-color: #32CD32;
+            --flower-color: #FF69B4;
+        }
+
+        body {
+            background: linear-gradient(180deg, #87CEEB 60%, #90EE90 100%);
+            margin: 0;
+            height: 100vh;
+            overflow: hidden;
+            font-family: 'Arial', sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .garden {
+            position: relative;
+            width: 800px;
+            height: 600px;
+            margin-top: 50px;
+        }
+
+        .pot {
+            position: absolute;
+            bottom: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 150px;
+            height: 100px;
+            background: var(--soil-color);
+            border-radius: 0 0 15px 15px;
+            box-shadow: 0 10px 20px rgba(0,0,0,0.2);
+        }
+
+        .plant {
+            position: absolute;
+            bottom: 100px;
+            left: 50%;
+            transform-origin: bottom;
+        }
+
+        .stem {
+            width: 8px;
+            background: var(--stem-color);
+            position: absolute;
+            bottom: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            transition: height 1.5s ease-in-out;
+        }
+
+        .leaf {
+            position: absolute;
+            width: 30px;
+            height: 50px;
+            background: var(--leaf-color);
+            border-radius: 0 50px;
+            transform-origin: bottom;
+            animation: sway 3s ease-in-out infinite;
+        }
+
+        .flower {
+            position: absolute;
+            width: 30px;
+            height: 40px;
+            background: var(--flower-color);
+            clip-path: polygon(50% 0%, 100% 38%, 82% 100%, 18% 100%, 0% 38%);
+            animation: bloom 2s ease-out;
+        }
+
+        .particles {
+            position: absolute;
+            pointer-events: none;
+        }
+
+        .particle {
+            position: absolute;
+            background: rgba(255, 255, 255, 0.7);
+            border-radius: 50%;
+            animation: float 3s ease-out forwards;
+        }
+
+        .controls {
+            position: fixed;
+            bottom: 20px;
+            display: flex;
+            gap: 15px;
+            background: rgba(255, 255, 255, 0.9);
+            padding: 15px;
+            border-radius: 15px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        }
+
+        button {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 8px;
+            background: #4CAF50;
+            color: white;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+        }
+
+        .stats {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: rgba(255, 255, 255, 0.9);
+            padding: 15px;
+            border-radius: 10px;
+        }
+
+        @keyframes sway {
+            0%, 100% { transform: rotate(-5deg); }
+            50% { transform: rotate(5deg); }
+        }
+
+        @keyframes bloom {
+            0% { transform: scale(0); opacity: 0; }
+            100% { transform: scale(1); opacity: 1; }
+        }
+
+        @keyframes float {
+            0% { transform: translateY(0) scale(1); opacity: 1; }
+            100% { transform: translateY(-100px) scale(0); opacity: 0; }
+        }
+    </style>
+</head>
+<body>
+    <div class="stats">
+        <h3>Plant Status 🌱</h3>
+        <p>Growth Stage: <span id="stage">0</span>/7</p>
+        <p>Health: <span id="health">100</span>%</p>
+    </div>
+
+    <div class="garden">
+        <div class="pot"></div>
+        <div class="plant" id="plant">
+            <div class="stem" id="stem"></div>
+        </div>
+        <div class="particles" id="particles"></div>
+    </div>
+
+    <div class="controls">
+        <button onclick="water()">💧 Water</button>
+        <button onclick="fertilize()">🌱 Fertilize</button>
+        <button onclick="sing()">🎵 Sing to Plant</button>
+        <button onclick="reset()">🔄 Reset</button>
+    </div>
+
+    <script>
+        let growthStage = 0;
+        let health = 100;
+        const maxGrowth = 7;
+
+        function createParticles(x, y) {
+            const particles = document.getElementById('particles');
+            for(let i = 0; i < 15; i++) {
+                const particle = document.createElement('div');
+                particle.className = 'particle';
+                particle.style.left = `${x}px`;
+                particle.style.top = `${y}px`;
+                particle.style.width = `${Math.random() * 8 + 2}px`;
+                particle.style.height = particle.style.width;
+                particle.style.animationDelay = `${i * 0.1}s`;
+                particles.appendChild(particle);
+                
+                setTimeout(() => particle.remove(), 3000);
+            }
+        }
+
+        function createLeaf(position, size) {
+            const leaf = document.createElement('div');
+            leaf.className = 'leaf';
+            leaf.style.left = `${Math.random() * 40 - 20}px`;
+            leaf.style.bottom = `${position}px`;
+            leaf.style.transform = `rotate(${Math.random() * 60 - 30}deg)`;
+            leaf.style.width = `${size}px`;
+            leaf.style.height = `${size * 1.6}px`;
+            document.getElementById('plant').appendChild(leaf);
+        }
+
+        function createFlower(position) {
+            const flower = document.createElement('div');
+            flower.className = 'flower';
+            flower.style.bottom = `${position}px`;
+            flower.style.left = `${Math.random() * 40 - 20}px`;
+            document.getElementById('plant').appendChild(flower);
+        }
+
+        function updatePlant() {
+            const stem = document.getElementById('stem');
+            stem.style.height = `${growthStage * 50}px`;
+            
+            document.getElementById('stage').textContent = growthStage;
+            document.getElementById('health').textContent = health;
+
+            // Add features based on growth stage
+            if(growthStage >= 2) createLeaf(growthStage * 30, 20 + growthStage * 5);
+            if(growthStage >= 4) createFlower(growthStage * 40);
+            if(growthStage >= 6) document.documentElement.style.setProperty('--flower-color', '#FFD700');
+        }
+
+        function water() {
+            if(growthStage >= maxGrowth) return;
+            growthStage = Math.min(growthStage + 1, maxGrowth);
+            health = Math.min(health + 10, 100);
+            createParticles(400, 500);
+            updatePlant();
+        }
+
+        function fertilize() {
+            if(health >= 100) return;
+            health = Math.min(health + 20, 100);
+            createParticles(400, 500);
+            updatePlant();
+        }
+
+        function sing() {
+            health = Math.min(health + 5, 100);
+            createParticles(400, 300);
+            document.body.style.background = 'linear-gradient(180deg, #FFB6C1 60%, #90EE90 100%)';
+            setTimeout(() => {
+                document.body.style.background = 'linear-gradient(180deg, #87CEEB 60%, #90EE90 100%)';
+            }, 2000);
+        }
+
+        function reset() {
+            growthStage = 0;
+            health = 100;
+            document.getElementById('plant').innerHTML = '<div class="stem" id="stem"></div>';
+            document.documentElement.style.setProperty('--flower-color', '#FF69B4');
+            updatePlant();
+        }
+
+        // Environmental effects
+        setInterval(() => {
+            if(Math.random() < 0.1) createParticles(Math.random() * 800, Math.random() * 200);
+        }, 3000);
+
+        // Health degradation
+        setInterval(() => {
+            health = Math.max(health - 1, 0);
+            updatePlant();
+        }, 5000);
+    </script>
+</body>
+</html>
